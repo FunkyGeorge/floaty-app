@@ -1,84 +1,21 @@
-import { useEffect, useState, useRef } from "react";
-import { Text, View } from "react-native";
-import {
-  accelerometer,
-  setUpdateIntervalForType,
-  SensorTypes
-} from "react-native-sensors";
-import Sound from "react-native-sound";
+import { Button, Text, View } from "react-native";
 
-setUpdateIntervalForType(SensorTypes.accelerometer, 100);
+import useAlert from "@/hooks/useAlert";
+import useThresholdConfig from "@/hooks/useThresholdConfig";
+import useSensorMetrics from "@/hooks/useSensorMetrics";
+
 
 export default function Index() {
-  const [metrics, setMetrics] = useState({ x: 0, y: 0, z: 0});
-  const [isAlerting, setIsAlerting] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [high, setHigh] = useState(0);
-  const [low, setLow] = useState(0);
-  const sensorSubscriptionRef = useRef<any>();
-
-  const initialQ: Array<number> = [];
-  const [motionQ, setMotionQ] = useState(initialQ);
-
-  const sweetAlertSound = new Sound("sweet_alert.wav", Sound.MAIN_BUNDLE, (error) => {
-    if (error) {
-      console.log('failed to load the sound', error);
-      return;
-    }
-  });
-
-  function tick() {
-    let localQ = motionQ.slice();
-    if (isInitializing) {
-      localQ.push(metrics.z);
-      setMotionQ(localQ);
-    } else {
-      localQ.push(metrics.z);
-      localQ.shift();
-
-      let max = -Infinity;
-      let min = Infinity;
-      localQ.forEach((el) => {
-        if (el < min) {min = el}
-        if (el > max) {max = el}
-      });
-      console.log(min, max);
-      setHigh(max);
-      setLow(min);
-      setMotionQ(localQ);
-
-      const threshold = 1;
-
-      setIsAlerting(Math.abs(high - low) > threshold);
-    }
-  };
-
-  useEffect(() => {
-    sensorSubscriptionRef.current = accelerometer.subscribe(({ x, y, z }) => {
-      setMetrics({x, y, z});
-    });
-
-    const tickInterval = setInterval(tick, 1000);
-
-    setTimeout(() => {
-      setIsInitializing(false);
-    }, 5000);
-
-    return () => {
-      sensorSubscriptionRef.current.unsubscribe();
-      clearInterval(tickInterval);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isInitializing) {
-      console.log("trying to play sound");
-      sweetAlertSound.play((success) => {
-        console.log(success);
-      });
-    }
-  }, [isAlerting]);
-
+  const { isAlerting, setIsAlerting} = useAlert(); 
+  const { threshold, Increment, Decrement } = useThresholdConfig();
+  const {
+    metrics,
+    high,
+    low,
+    waveHeight,
+    waveDiff,
+    isInitializing
+  } = useSensorMetrics(setIsAlerting, threshold);
 
   return (
     <View
@@ -86,14 +23,32 @@ export default function Index() {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: isAlerting ? "red" : "lightblue",
       }}
     >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+      <Text style={{ fontSize: 30 }}>Floaty App</Text>
 
       <Text>Alerting: {isAlerting ? "True" : "False"}</Text>
-      <Text>{`x: ${metrics.x.toFixed(3)}, y: ${metrics.y.toFixed(3)}, z: ${metrics.z.toFixed(3)}`}</Text>
-      {!isInitializing && 
-        <Text>{`high: ${high}, low: ${low}`}</Text>}
+
+      <Text style={{ fontWeight: "bold"}}>Configure</Text>
+      <View style={{ flexDirection: "row" }}>
+        <Button title="-" onPress={Decrement} />
+        <Text style={{ margin: 10 }}>{`Threshold: ${threshold.toFixed(1)}`}</Text>
+        <Button title="+" onPress={Increment} />
+      </View>
+
+      <View style={{ marginVertical: 40 }}>
+        <Text style={{ fontWeight: 'bold' }}>Metrics:</Text>
+        <Text>{`x: ${metrics.x.toFixed(3)}, y: ${metrics.y.toFixed(3)}, z: ${metrics.z.toFixed(3)}`}</Text>
+      </View>
+      {isInitializing 
+        ? <Text>Calibrating...</Text>
+        : <>
+            <Text>{`High Point: ${high.toFixed(3)}`}</Text>
+            <Text>{`Low Point: ${low.toFixed(3)}`}</Text>
+            <Text>{`Wave Height: ${waveHeight.toFixed(3)}`}</Text>
+            <Text>{`Wave Diff: ${waveDiff.toFixed(2)}`}</Text>
+          </>}
     </View>
   );
 }
