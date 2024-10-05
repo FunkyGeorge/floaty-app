@@ -27,6 +27,14 @@ export default function useAlert() {
         };
       }, []);
 
+      useEffect(() => {
+        if (isAlerting) {
+            setTimeout(() => {
+                setIsAlerting(false);
+            }, 3000);
+        }
+      }, [isAlerting]);
+
       return {
         isAlerting,
         setIsAlerting

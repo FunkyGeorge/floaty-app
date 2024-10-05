@@ -7,7 +7,7 @@ import {
 
 setUpdateIntervalForType(SensorTypes.accelerometer, 100);
 
-export default function useSensorMetrics(setIsAlerting: (bool: boolean) => void, threshold: number) {
+export default function useSensorMetrics() {
     const [metrics, setMetrics] = useState({ x: 0, y: 0, z: 0});
     const [high, setHigh] = useState(0);
     const [low, setLow] = useState(0);
@@ -39,9 +39,6 @@ export default function useSensorMetrics(setIsAlerting: (bool: boolean) => void,
     
           const newWaveHeight = high - low;
           const newWaveDiff = newWaveHeight - waveHeight;
-          if (!isInitializing) {
-            setIsAlerting(Math.abs(newWaveDiff) > threshold);
-          }
           setWaveDiff(newWaveDiff);
           setWaveHeight(newWaveHeight);
     

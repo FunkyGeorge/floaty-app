@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Button, Text, View } from "react-native";
 
 import useAlert from "@/hooks/useAlert";
@@ -6,7 +7,7 @@ import useSensorMetrics from "@/hooks/useSensorMetrics";
 
 
 export default function Index() {
-  const { isAlerting, setIsAlerting} = useAlert(); 
+  const { isAlerting, setIsAlerting} = useAlert();
   const { threshold, Increment, Decrement } = useThresholdConfig();
   const {
     metrics,
@@ -15,7 +16,20 @@ export default function Index() {
     waveHeight,
     waveDiff,
     isInitializing
-  } = useSensorMetrics(setIsAlerting, threshold);
+  } = useSensorMetrics();
+
+  const prevWaveDiff = useRef<number>(0);
+
+
+  if (!isInitializing) {
+    const shouldAlert = Math.abs(waveDiff) > threshold;
+    prevWaveDiff.current = waveDiff;
+    if (shouldAlert && !isAlerting) {
+      setIsAlerting(shouldAlert);
+    }
+  } else {
+    prevWaveDiff.current = waveDiff;
+  }
 
   return (
     <View
